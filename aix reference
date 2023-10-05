@@ -1,0 +1,818 @@
+====================
+
+VIOS NEW INSTALL
+root
+r oem
+rules -o deploy -d
+shutdown -restart
+
+====================
+
+change status to down and unload interface (it will not be busy) until reboot
+ifconfig en8 down detach
+
+====================
+
+lspv
+df -g
+lsvg
+lsvg -l vgname
+
+====================
+
+- cek free size
+lsvg vgname
+
+====================
+
+- reset ip aix
+chdev -a netaddr=0.0.0.0 -a netmask=0.0.0.0 -l en0
+
+====================
+
+- mindahin mount fs dari node1 ke node2:
+lspv --> pastikan hdisk pvid bisa dilihat di node1 dan node2
+node1:
+df -g
+umount /fsname
+df -g
+varyoffvg vgname
+exportvg vgname
+lsvg
+
+node2:
+df -g
+importvg -y vgname hdiskx
+lsvg
+varyonvg vgname
+mount /fsname
+df -g
+
+====================
+
+- bikin pv
+chdev -l hdiskx -a pv=yes
+
+====================
+
+- bikin fs
+smit mkvg 
+smit mklv
+smit jfs2
+mount fs
+chfs -a size=500M /fsname
+
+====================
+
+- copy content from node1 to node2
+scp -rp * root@192.168.8.152:/fsname
+scp AIX71 padmin@10.225.7.182:~
+scp source destination
+
+====================
+
+- rename filesystem
+smit jfs2
+umount fsname_old
+mount fsname_new
+
+====================
+
+- check tape drive
+lscfg -vp | grep -p rmt
+lscfg -vl rmtx
+lscfg -pvd rmt
+
+====================
+
+- check internal disk size
+lspv hdiskx -> if already make vg
+getconf DISK_SIZE /dev/hdiskx -> for new disk/not made vg yet
+
+====================
+
+- check external disk
+mpio_get_config -A
+
+====================
+
+- script for repetitive command
+for i in 1 2 3 4 5 6 7 8; do echo $i; done
+
+check uuid disk di aix 5.3 yg ga bisa lspv -u
+=============================================
+lsdev -Cc disk -F name | while read hdisk; do
+echo ${hdisk},$(odmget -q "name=${hdisk} and attribute=unique_id" CuAt|grep value|cut -d '"' -f2)
+done
+
+x=0; while [[ $x -le 3 ]]; do echo x=$x; (( x += 1 )); done
+=====================================================================
+- mirror rootvg
+# bootinfo -B hdisk1   >>> Check that hdisk11 is supported by AIX as a boot device
+# extendvg rootvg hdisk1    >>> Extend rootvg to include hdisk1
+# mirrorvg -m rootvg hdisk1   >>> Mirror the rootvg (-S for background)
+# bosboot -ad /dev/hdisk1   >>> Initialize all boot records and devices
+# bootlist -m normal hdisk0 hdisk1   >>> Initialize the boot list
+# bootlist -m normal -o
+# syncvg rootvg >>> synchronize rootvg
+
+
+# lspv
+NAME             PVID                 VG               STATUS
+hdisk0           00c55384341c6e62     rootvg           active
+hdisk1           00cd55a4ae6b676f     None
+hdisk2           00c5538409a99b66     None
+hdisk3           00c553844356f733     None
+
+
+NFS
+---
+1)  Show what is being exported on the source server
+
+     showmount -e
+
+    Note:  If the command above does not show the correct mount points
+    that needs to be exported.  You can run the following command to attempt
+    to export the filesystems.
+
+     exportfs -a
+
+2)  To unmount the filesystem on the source server that is being NFS on other systems.
+
+     a)  unmount the NFS mount points on the target server.
+
+          umount (filesystems)   target servers
+          
+     b)  umount the filesystem on the source server once the target servers
+         are unmounted.
+
+           umount (filesystems)
+           
+3)  Mounting NFS mount points on target server.
+
+     a) mount (IP):(mount point)  (mount point)
+
+
+crontab file format:
+minute    hour    day_of_month    month        weekday        command
+0-59      0-23    1-31            1-12        0-6 Sun-Sat     shell command
+
+* * * * * /bin/script.sh        schedule a job to run every minute
+0 1 15 * * /fullbackup          1 am on the 15th of every month
+0 0 * * 1-5 /usr/sbin/backup    start the backup command at midnight, Mo - Fr
+0,15,30,45 6-17 * * 1-5 /home/script1                                     execute script1 every 15 minutes between 6AM and 5PM, Mo - Fr
+0 1 1 * * /tmp -name 'TRACE*' -mtime +270 -exec rm {} \\; >/dev/null 2>&1 it will delete files older than 9 months
+                                                                          (\\; <-- double "\" needed because to interpret ";" correctly)
+
+crontab -l
+crontab -e
+
+nmon -fdT -s30 -c2
+nmon -f -s 60 -c 30
+
+/usr/bin/nmon -F /nmon/inst_`date +%d%h%Y`.nmon -fdT -s 300 -c 288
+
+====================
+
+mkrep -sp rootvg -size 10G
+
+====================
+
+scp -rp AIX71 padmin@10.225.7.182:~
+====================
+updateios -accept -install -dev /home/padmin/vios2.2.3.1
+====================
+RMBP_DB_DC_1		
+fcs0 c0:50:76:07:69:2a:00:08
+fcs1 c0:50:76:07:69:2a:00:0a
+
+RMBP_WEB_DC_1
+fcs0 c0:50:76:07:69:2a:00:00
+fcs1 c0:50:76:07:69:2a:00:02
+
+RMBP_APP_DC_1	
+fcs0 c0:50:76:07:69:2a:00:04
+fcs1 c0:50:76:07:69:2a:00:06
+
+Error: could not find libjava.so
+Error: could not find Java 2 Runtime Environment.
+
+# for i in 27 28 29 30 31 32 33
+> do chdev -l hdisk$i -a algorithm=round_robin
+> done
+
+# for i in 29 30 31 32 33 34 35
+> do chdev -l hdisk$i -a algorithm=round_robin
+> done
+====================
+mkvdev -sea ent5(nama seanya) -vadapter ent4(virtual eth adapter, l-lan) -default ent4 -defaultid 1
+entstat -d entx | grep -i real >> untuk melihat real adapter sea
+====================
+LHEA
+mkvdev -sea ent0 -vadapter ent2,ent3,ent4,ent5 -default ent2 -defaultid 1 
+(where ent0 is the Logical Host Ethernet Port and ent2 to ent5 are the Virtual I/O Ethernet Adapters)
+====================
+mkrep -sp rootvg -size 20G
+====================
+mkvdev -fbo -vadapter vhost0  --> buat vtopt
+loadopt -vtd vtopt0 -disk dvd.1022A4_OBETA_710.iso
+mkvdev -vdev hdisk1 -vadapter vhost0
+====================
+vfcmap -vadapter vfchost0 -fcp fcs1
+====================
+
+lv nyangkut:
+- lspv -l hdiskx
+- smit lv -> set characteristic -> add copies of lv
+- smit vg -> synchronize LVM mirror
+- smit lv -> set characteristic -> remove copies of lv
+- baru reducevg
+====================
+Zoning QLOGIC:
+show ns all
+
+admin start
+zoning edit
+
+alias create PowerVM1
+alias add PowerVM1 WWNnya
+alias member PowerVM1
+
+zone create PowerVM1_V7000
+zone add PowerVM1_V7000 PowerVM1
+zone add PowerVM1_V7000 V7000
+ 
+zoneset list
+zoneset add IBMSWITCH100000C0DD23ED58 PowerVM1_v7000
+zoneset zones IBMSWITCH100000C0DD23ED58
+
+zoning save
+zoneset activate IBMSWITCH100000C0DD23ED58
+====================
+
+UpdateVIOS
+==========
+loopmount -i NamaFile.iso -o "-V cdrfs -o ro" -m /mnt
+updateios -dev /mnt -accept -install
+
+
+FSM CLI
+=======
+Discovering
+smcli discover -H vioshostname
+
+Accessing
+smcli accesssys -u padmin vioshostname
+
+Inventory
+smcli collectinv -p "All Inventory" vioshostname
+
+Check CAS Protocol
+smcli lssys -i 192.168.8.0 -A AccessState,CommunicationState,Protocols
+
+====================
+/etc/profile
+/etc/security/.profile
+
+#export PS1="\033[1;31m\u\033[0m@\033[1;37m\h\033[0m\033[1;32m(\$PWD)\033[0m# "
+export PS1="[\u@\h:\w]# "
+
+export PS1="[$(whoami)@$(hostname):\$PWD]# "
+
+change in /etc/passwd >> root:!:0:0::/:/usr/bin/bash
+
+ps -p $$
+====================
+
+egrep -n umask|umask /etc/security/user
+
+
+hush login:
+touch $HOME/.hushlogin
+
+Mount iso aix53
+===============
+mklv -y dvdlv rootvg 4G
+dd if=AIX5300-12_update.iso of=/dev/dvdlv bs=1
+mount -v cdrfs -o ro /dev/dvdlv /mnt
+
+====================
+lsvg rootvg
+lsvg -l rootvg
+lsvg -p rootvg
+
+DISK=hdisk1
+chdev -l $DISK -a pv=clear
+perl -e 'print pack("H*","0002d39b0d52a723");' > /tmp/pvid
+cat /tmp/pvid | dd of=/dev/$DISK bs=1 seek=128
+rmdev -dl $DISK
+lspv
+cfgmgr
+lspv
+====================================
+passwordless to local host
+cat id_rsa.pub >> authorized_keys
+=========================================
+create fs
+chlv -t jfs2 testlv
+crfs -v jfs2 -A yes -d /dev/testlv -m /test
+
+mklv -t jfs2 -y testlv testvg 4G
+crfs -v jfs2 -A yes -d /dev/testlv -m /test
+
+==============================================
+Create and mount an external snapshot:
+1. snapshot -o snapfrom=/origfs -o size=300M   <--creates a logical volume to hold the snapshot fs
+2. snapshot -q /origfs                         <--lists all available snapshots of an fs, with timestamp when snapshot was created
+   Current  Location          512-blocks        Free Time
+            /dev/fslv00           786432      785664 Fri Jan 30 13:55:08 2015
+   *        /dev/fslv01          1048576     1047808 Fri Jan 30 13:58:19 2015   <-- * denotes the most recent snapshot
+
+3. mount -v jfs2 -o snapshot /dev/fslv00 /snap_origfs  <--mount the given snapshot fs (mount point (/snap_origfs) should be created first)
+                                                         (snapped filesystem and all files are available now, but it is read only)
+
+if needed:
+snapshot -d /dev/fslv00                         <--remove given snapshot
+snapshot -o size=+1 /dev/fslv00                 <--dynamically increase size by 1 partition (check fs usage with df after mounting it)
+
+----------------------------
+
+Rollback and restore an external snapshot:
+(When a rollback occurs, all snapshots of that file system will be removed)
+
+1. snapshot -q /origfs                          <--check available snapshots
+2. umount /origfs                               <--umount original fs (if snapped fs is mounted too, umount that one as well)
+3. rollback -v /origfs /dev/fslv01              <--rollback to /origfs to content of /dev/fslv01
+4. mount /origfs                                <--after mounting fs, original content will be available again
+================================================================
+
+II. Internal snapshot:
+
+Internal snapshots can be used only, if the filesystem was created with isnapshot=yes flag. (If it is on 'no', fs has to be recreated.) When you make an internal snapshot a special directory (called .snapshot) will be created in the original file system. This directory is hidden to avoid unintentional deletion of the data (ls command will not show it), but viewing and copying files from this dir is possible (cd/cp commands are possible). This directory is read-only and contains a link to the location of the snapshot image.
+
+Internal snaphots are using the space of the original fs and monitoring fs usage is necessary, because if fs gets full all snapshots will be unavailable (snapshot -q <fs> will show invalid state of the snapshot).
+
+
+Create and vew files in an internal snapshot:
+1. lsfs -q /test                    <--check if isnapshot flag is on yes (if needed:crfs -v jfs2 -d testlv -m /test -a isnapshot=yes)
+2. snapshot -o snapfrom=/test -n test_isnap    <--create an internal snapshot from filesystem /test as test_isnap
+3. snapshot -q /test                <--list snapshots of an fs
+   Current  Name         Time      
+   *        test_isnap   Mon Feb  2 08:14:49 2015 <--output is different from external snapshot (it does not show location and size)
+
+4. ls -la /test                     <--it will not show .snapshot directory (it is hidden)
+5. ls -l /test/.snapshot            <--it will show the internal snapshot
+   drwxr-xr-x    3 root     system          256 Feb  2 08:14 test_isnap
+6. ls -l /test/.snapshot/test_isnap <--it will show all the files in the snapshot (cd/cp is possible in this dir)
+
+if needed:
+rollback -v  -n test_isnap /test    <--rollback the whole fs (fs must be umounted first and snapshot will be deleted after rollback)
+snapshot -d -n test_isnap /test     <--delete an internal snapshot
+===================================================================
+
+Restart RMC server in vios
+$ oem_setup_env >>> to get to restricted shell
+# rmcctrl -z >>> stops the server
+# rmcctrl -A >>> starts the server
+# rmcctrl -p >>> enables remote client connections
+==============================================================
+check size PV
+#lsdev -Cc disk
+And then, suppose 5 disks are there,
+# for i in 0 1 2 3 4 5
+>do
+>bootinfo -s hdisk$i
+>done
+======================================================
+memindahkan root vg ke another hdisk when mirrored
+
+#lspv -l hdisk0 >>> cari sysdump (lg_dumplv) di kedua mirrored disk
+#smit migratepv >>> move LV sysdump (lg_dumplv)
+#unmirrorvg rootvg hdiskn >>> hdisk yang mau di unmirrored
+#chpv -c hdiskn >>> hdisk yang mau di unmirrored (-c untuk hapus hadisk dari bootlist)
+#reducevg rootvg hdiskn >>> hdisk yang mau di unmirrored
+#lspv >>> cek hdisk apakah sudah unmirrored
+#bosboot -ad /dev/hdiskn >>> hdisk yang megang rootvg
+=======================================================
+cplv within vg with created lv and fs with minimum same size or more
+
+# umount /oldfs >>> unmount oldfs attached oldlv
+# smit jfs2 >>> create fs mount to newlv
+# chlv -t copy newlv >>> change type to COPY (default jfs2)
+# cplv -e newlv -f oldlv >>> copy oldlv to newlv
+# mount /oldfs >>>  mount oldfs
+# mount /newfs >>> mount newfs (copiedfs)
+# df -g >>> check the size
+
+# cplv -v vgname -y newlv oldlv >>> create indetical lv
+# mount /fs/fsname
+=======================================================
+splitvg datavg not rootvg
+
+# splitvg -c2 -y newvg -i oldvg
+# lsvg -l oldvg
+# lsvg -l newvg
+# mount /fs/namefs
+if like this
+# lsvg newvg
+...
+SNAPSHOT VG:        yes                      PRIMARY VG:     oldvg
+you can do joinvg
+# joinvg oldvg >>> join newvg and oldvg will be mirror vg
+==============================================================
+gunzip ESD-AIX_Toolbox_for_Linux_Apps_Source_11-2012.tar.gz
+tar -cvf /newfs/newtar /fs_yang_mau_di_compress
+tar -xvf ESD-PowerHA_SystemMirror_v7.2.3_Std_Ed_062019.tar
+==============================================================
+create .profile on root and add the following script :
+
+#PATH=$PATH:/usr/bin:/etc:/usr/sbin:/usr/ucb:$HOME/bin:/usr/bin/X11:/sbin:.
+
+export PATH
+
+if [ -s "$MAIL" ]           # This is at Shell startup.  In normal
+then echo "$MAILMSG"        # operation, the Shell checks
+fi                          # periodically.
+
+export PS1="\[\e[31;1m\]\u@\[\e[32;1m\]\H> \[\e[0m\]\[\e[33;1m\]# \[\e[0m\]"
+set -o vi
+export EDITOR=vi
+export PATH
+bash
+
+#SU - root
+======================================================================
+list installed apps
+lslpp -l
+=====================================================================
+replace mirrored disk failed
+before replace
+# lspv
+# errpt
+physical partition marked stale
+# lsvg -l namevg
+open/stale
+# unmirrorvg namevg hdiskx
+# lspv -l hdiskx
+# lsvg -l namevg
+# reducevg namevg hdiskx
+# lspv
+# rmdev -dl hdiskx --> failed disk
+# cfgmgr
+# lsdev -Cc disk
+# lspv
+# extendvg -f rootvg hdiskx --> new disk
+# mirrorvg -m rootvg hdiskx
+# bosboot -ad /dev/hdiskx   >>> Initialize all boot records and devices
+# bootlist -m normal hdisky hdiskx
+# bootlist -m normal -o
+========================================================================
+lscfg -vpl hdisk0
+.U78AA.001.WZSG952-P2-D5
+lslv -m bootlv
+========================================================================
+# varyoffvg vgname
+# exportvg vgname
+# importvg -y vgname hdiskx
+# varyonvg vgname
+=======================================================================
+clone rootvg
+# alt_disk_copy -B -g -d hdiskx
+
+# nohup alt_disk_copy -BO -d hdiskx
+# sending nohup output to nohup.out.
+# tail -f nohup.out
+
+# alt_disk_install -X >> remove altinst_rootvg
+=================================================
+clone baru
+# alt_disk_install -BCO
+
+clone persis
+# alt_disk_install -BC hdisk_target
+
+Clone Hobis_UAT (88.199)
+# alt_disk_install -BC -e /etc/exclude.rootvg hdisk13
+
+================================================root
+change name
+chlv -n newlv oldlv
+chfs -m newfs oldfs
+==========================================================================
+unloadopt -vtd opt
+mkvdev -vdev <hdisk#> -vadapter <vhost#> -dev <vtdName>
+lsmap -all
+ mkvdev -fbo -vadapter vhost1 -dev vtdaix72
+loadopt -disk iso -vtd opt
+lsrep4
+
+create lv on rootvg vios
+mkvdev -vdev DC71_rootvg -vadapter vhost0 -dev aix71
+
+
+create lv
+mklv -y'databaselv' -t'jfs2' -x'60000' datavg 20 hdisk1
+
+bnyak pv
+mklv -y'dataloglv' -t'jfs2' -x'60000' logvg 5 hdisk2 hdisk3 hdisk4
+==========================================================================
+Migrasi menggunakan savevg
+
+# savevg -f /newfs/vgsavevg existingvg
+# umount /newfs
+# varyoffvg vgsavevg
+# export vgsavevg
+# rmdev hdiskx
+Pindahkan disk attachment dari mesin lama ke mesin baru
+# importvg -y vgsavevg
+# restvg -f /newfs/vgsavevg hdiskx
+==========================================================================
+swapoff /dev/paginglv
+chps -s7 hd6 >> increase paging space
+mkps -a -n -s100 pagingvg >> -s100 adalah jumlah pp untuk size paging space
+==========================================================================
+Prereq oracle on aix :
+- bos.adt
+- java 6 64bit or 7 64bit
+- XLC
+- bos.perf
+
+/tmp = 5GB
+
+Recommended swap = 16 GB
+lsps -a
+lslv hd6
+chps -s 8 hd6
+
+vmo -p -o minperm%=3
+vmo -p -o maxperm%=90
+vmo -p -o maxclient%=90
+vmo -p -o strict_maxclient=1
+vmo -p -o strict_maxperm=0
+vmo -p -o minfree=960
+vmo -p -o maxfree=1088
+
+chdev -l sys0 -a maxuproc=4096
+
+smit chgsys
+
+useradd -m oracle
+passwd oracle
+
+
+** cek maxuproc
+lsattr -E -l sys0 | grep maxuproc
+====================================================================
+User max concurrent login are too high
+# lsuser -f user | grep maxulogs >> check maxulogs entry of the user
+# chuser maxulogs=0 user >> change to higher value (0 means unlimited)
+=====================================================================
+analisa issue performance
+# snap -r
+# snap -gkLfc
+# errpt
+# errpt -a
+# topas
+# nmon
+
+extract snap
+
+# zcat snap.pax.Z | pax -r
+
+======read-only======
+# chmod 400 file_name
+======================
+mksysb jasindo dc
+# nohup mksysb  -v -i -X -p -A /dev/rmt0 &
+# tail -f nohup
+
+# mksysb  -v -i -X -A /backupos/par-temp1_`date +%Y-%m-%d`.mksysb
+===========================================
+rename hdisk
+
+unmount fs
+varyoffvg
+# rendev -l <ExistingHdiskname> -n <NewHdiskname>
+varyonvg
+mount fs
+===============================================
+Setting VNC Server di AIX
+
+1. Install CDE di bundle software
+2. Allow X11Forwarding di sshd_config
+3. Jalankan command rc.dt 
+4. Install VNC Server
+# rpm -Uvh file_installer.rpm
+# rpm -ivh file_installer.rpm
+5. Jalankan command vncserver
+6. Edit file .vnc/xstartup dan ubah isinya seperti ini
+[root@dbprod_coresystem_1:/]# vi .vnc/xstartup
+#!/bin/sh
+
+xrdb $HOME/.Xresources
+xsetroot -solid grey
+xterm -geometry 80x24+10+10 -ls -title "$VNCDESKTOP Desktop" &
+/usr/dt/bin/dtsession
+twm &
+
+[root@dbprod_coresystem_1:/]#
+7. Jalankan command vncserver lagi
+8. Connect via vncclient menggunakan IP dan port yang aktif
+==============================================================
+Setting Profile Bash 
+
+PATH=$PATH:/usr/bin:/etc:/usr/sbin:/usr/ucb:$HOME/bin:/usr/bin/X11:/sbin:.
+
+export PATH
+
+if [ -s "$MAIL" ]           # This is at Shell startup.  In normal
+then echo "$MAILMSG"        # operation, the Shell checks
+fi                          # periodically.
+
+#export LC_ALL=EN_US.UTF-8
+export PS1="[$(whoami)@$(hostname):\$PWD]# "
+
+set -o vi
+export EDITOR=vi
+export PATH
+bash
+===============================================================
+Migrasi PV
+kenapa?
+- failing disk
+- hot spot on disk
+- natural data growth
+- migrate to new or bigger pv
+
+migratepv:
+- digunakan untuk migrasi beberapa atau semua lv yang ada dalam pv ke lain pv
+- bisa dilakukan saat filesystem online
+
+note : misal mau migrasi dari hdisk2 ke hdisk3
+
+# lspv >> cek pv dan vg
+# lsvg -l namevg atau # lsvg -p namevg >> cek isi fs
+# lspv -l hdisk2 >> cek isi pp
+# lspv -l hdisk3 >> cek isi pp
+# lslv -m namelv | more >> cek pp dari lv ada di hdisk mana
+# chdev -l hdisk3 -a pv=yes >> aktivate pv
+# extendvg namevg hdisk3 >> extendvg ke hdisk tujuan
+# migratepv hdisk2 hdisk3
+# lspv
+# lspv -l hdisk2 >> cek isi pp
+# lspv -l hdisk3 >> cek isi pp
+# lslv -m namelv | more >> cek pp dari lv ada di hdisk mana
+# lsvg -l namevg atau # lsvg -p namevg >> cek isi fs
+# reducevg namevg hdisk2 > dan akhirnya data berhasil dipindahkan dari hdisk2 ke hdisk3
+==========================================================================================
+monitoring proses
+ps -ef | grep nmon
+===================================================================================
+This  svmon command will get the top 10 processes that are using most computational memory on your system:
+
+# svmon -P |egrep " Y | N "| sort -rn +5| head
+====================================================================================
+/tmp/ibmsupt is a default directory for snap output. If you can't increase the size of /tmp,  you can write the snap output to another directory which has more free space by using the -d flag
+- Login as root to the affected system.
+- First run "echo y | snap -r".
+- Next run  "snap –ac –d <full path of the destination directory>".  The snap.pax.Z file will written to ibmsupt in the destination directory.
+(-a untuk collect all snap information)
+=====================================================================================
+Real adapter SEA
+# entstat -d entx | grep -i real
+=====================================================================================
+contoh script
+
+# vi script.sh
+#!/bin/bash
+lspv
+# chmod +x script.sh
+==================================================================================
+sort largest file on current directory :
+# ls -A . | while read name; do du -sk $name; done | sort -nr
+==================================================================================
+
+# oslevel -rl targert_TL
+# instfix -i | grep ML
+# instfix -ick  target_TL | grep :-:
+
+
+
+================================================================
+
+chlv -x 1000 data03lv >> change maximum pps lv
+=================================================================
+How to mapping a disk from vio server to lpar in aix
+
+Note: The below procedure is to assume that we need to add a new virutal disk to the root volume group on the lpar,
+for that we need to map a new disk from vio server to the lpar.
+
+Find out the slot number of the vscsi
+
+#lspv -> To check the disk present on the lpar
+hdisk0          0006a7df4403b4a6                  rootvg                      active
+
+# lspath -F "name,status,parent,connection" -l hdisk0
+            hdisk0,Enabled,vscsi0,810000000000
+            hdisk0,Enabled,vscsi1,810000000000
+			
+# lscfg -l vscsi0
+  vscsi0           U9111.520.0000034-V10-C50-T1  Virtual SCSI Client Adapter
+
+# lscfg -l vscsi1
+  vscsi1           U9111.520.0000034-V10-C51-T1  Virtual SCSI Client Adapter
+
+U9111.520.0000034 -> model and serial number
+V10 -> lpar id
+C50 and C51 is client slot number of the vhost adapter
+
+login to the vio client, and find out the disk's slot number ( for ex: hdisk1) 
+                
+# lscfg|grep hdisk0 
+  hdisk0   U9133.55A.065040H-V10-C19  Virtual SCSI Server Adapter
+  
+login to the vio server and execute the below command to find out the vhost information of the particular disk.
+
+# lsdev -slots|grep -i C19
+  vhost3
+  
+# mkvdev -vdev hdisk1 -vadapter vhost10 -dev vtdname
+  
+====================================================================================
+
+change cpuid for nim
+
+# lsnim -l test
+# smit nim_mac_res >> deallocate
+# nim -F -o reset test
+# nim -o change -a cpuid=00FAF3574C00 test  
+
+======================================================================================
+
+Preparation additional disk Oracle GRID (ASM disk)
+
+cfgmgr
+lspv
+rendev -l hdisk34 -n hdisk40
+chdev -l hdisk37 -a reserve_policy=no_reserve
+chdev -l hdisk38 -a reserve_policy=no_reserve
+chdev -l hdisk39 -a reserve_policy=no_reserve
+chdev -l hdisk40 -a reserve_policy=no_reserve
+chdev -l hdisk41 -a reserve_policy=no_reserve
+chdev -l hdisk42 -a reserve_policy=no_reserve
+chdev -l hdisk43 -a reserve_policy=no_reserve
+chdev -l hdisk44 -a reserve_policy=no_reserve
+chown -R grid:asmadmin /dev/rhdisk37; chmod 660 /dev/rhdisk37
+chown -R grid:asmadmin /dev/rhdisk38; chmod 660 /dev/rhdisk38
+chown -R grid:asmadmin /dev/rhdisk39; chmod 660 /dev/rhdisk39
+chown -R grid:asmadmin /dev/rhdisk40; chmod 660 /dev/rhdisk40
+chown -R grid:asmadmin /dev/rhdisk41; chmod 660 /dev/rhdisk41
+chown -R grid:asmadmin /dev/rhdisk42; chmod 660 /dev/rhdisk42
+chown -R grid:asmadmin /dev/rhdisk43; chmod 660 /dev/rhdisk43
+chown -R grid:asmadmin /dev/rhdisk44; chmod 660 /dev/rhdisk44
+chown -R grid:asmadmin /dev/rhdisk45; chmod 660 /dev/rhdisk45
+  
+  
+  
+========================================================================================
+
+Migrate datavg
+  443  lspv
+  444  cfgmgr
+  445  lspv
+  446  extendvg datavg02 hdisk44
+  447  lsvg -p datavg02
+  448  migratepv hdisk11 hdisk44
+  449  lsvg -p datavg02
+  450  reducevg datavg02 hdisk11
+  451  lsvg -p datavg02
+
+Migrate rootvg
+Mirror rootvg
+# bootinfo -B hdisk1   >>> Check that hdisk11 is supported by AIX as a boot device
+# extendvg rootvg hdisk1    >>> Extend rootvg to include hdisk1
+# mirrorvg -m rootvg hdisk1   >>> Mirror the rootvg (-S for background)
+# bosboot -ad /dev/hdisk1   >>> Initialize all boot records and devices
+# bootlist -m normal hdisk0 hdisk1   >>> Initialize the boot list
+# syncvg rootvg >>> synchronize rootvg
+
+Reduce rootvg
+#lspv -l hdisk0 >>> cari sysdump (lg_dumplv) di kedua mirrored disk
+#smit migratepv >>> move LV sysdump (lg_dumplv)
+#unmirrorvg rootvg hdiskn >>> hdisk yang mau di unmirrored
+#chpv -c hdiskn >>> hdisk yang mau di unmirrored (-c untuk hapus hadisk dari bootlist)
+#reducevg rootvg hdiskn >>> hdisk yang mau di unmirrored
+#lspv >>> cek hdisk apakah sudah unmirrored
+#bosboot -ad /dev/hdiskn >>> hdisk yang megang rootvg 
+#bootlist -m normal hdiskn >>> hdisk yang megang rootvg 
+#bootlist -m normal -o >>> List bootlist
+
+
+=========================================================================================
+
+Restart VIOS IVM service
+
+# /usr/ios/lpm/sbin/httpdmgr stop
+# /usr/ios/lpm/sbin/httpdmgr start
+# /usr/ios/lpm/sbin/httpdmgr status
+  
